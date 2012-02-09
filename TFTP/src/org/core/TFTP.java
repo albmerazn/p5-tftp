@@ -1,7 +1,9 @@
 package org.core;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -27,18 +29,17 @@ public class TFTP {
 		try {
 			socket=new DatagramSocket();
 		} catch (SocketException e) {
-			// TODO Auto-generated catch block
 			//e.printStackTrace();
 		}
 	}
+
+// Falta el otro constructor
 	
 	public boolean enviarPaquete(String host, int puerto, byte[] paquete){
 		InetAddress direccion;
 		try {
 			direccion = InetAddress.getByName(host);
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
 			return false;
 		}
 		DatagramPacket datos = new DatagramPacket(paquete, paquete.length, direccion, puerto);
@@ -46,8 +47,6 @@ public class TFTP {
         try {
 			socket.send(datos);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
 			return false;
 		}
 		
@@ -327,12 +326,28 @@ public class TFTP {
         }
 		return true;
     }
+	
 	/**
 	 * Método que lee un archivo y lo copia en su directorio (get)
 	 * @param s archivo origen
 	 */
-	public boolean leerArchivo(File s)
+	public boolean leerArchivo(String host, int puerto, File s)
 	{
+		byte[] b = fileAbytes(s);
+		byte[] aux = new byte[512];
+		
+		if(b.length<=512)
+			enviarPaquete(host, puerto, crearPaqueteData(0, b));
+		
+		for(int i=0;i<b.length;i=i+512)
+		{
+			for(int j=i;j<512*i;j++)
+			{
+				aux[j]=b[j];
+			}
+		}
+		
+		
 		try{
 			String dir = new java.io.File(".").getCanonicalPath();
 			File nuevo = new File(dir);
@@ -350,4 +365,21 @@ public class TFTP {
 		return true;
 	}
 
+	private byte[] fileAbytes(File archivo)
+	{
+		byte[] b = new byte[(int) archivo.length()];
+		try {
+			FileInputStream fileInputStream = new FileInputStream(archivo);
+			fileInputStream.read(b);
+		} catch (FileNotFoundException e) {
+			System.out.println("Archivo no encontrado");
+			e.printStackTrace();
+		}
+		catch (IOException e1)
+		{
+			System.out.println("Archivo corrupto");
+			e1.printStackTrace();
+		}
+		return b;
+	}
 }
