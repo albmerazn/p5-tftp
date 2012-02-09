@@ -1,11 +1,15 @@
 package org.core;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.channels.FileChannel;
 
 public class TFTP {
 	
@@ -300,4 +304,50 @@ public class TFTP {
 		 return ((b[0] & 0xFF) << 8) + (b[1] & 0xFF);
 	}
 	
+	/**
+	 * Método que escribe sobre un archivo (put)
+	 * @param archivo Archivo a copiar
+	 * @param dir Direccion donde se quiere escribir
+	 * @return
+	 */
+	public boolean escribirArchivo(File archivo, String dir)
+    {		
+		File nuevo = new File(dir);
+        try{
+              FileChannel in = (new FileInputStream(archivo)).getChannel();
+              FileChannel out = (new FileOutputStream(nuevo)).getChannel();
+              in.transferTo(0, archivo.length(), out);
+              in.close();
+              out.close();
+        }
+        catch(Exception e)
+        {
+        	System.out.println("Imposible escribir sobre el archivo");
+            return false;
+        }
+		return true;
+    }
+	/**
+	 * Método que lee un archivo y lo copia en su directorio (get)
+	 * @param s archivo origen
+	 */
+	public boolean leerArchivo(File s)
+	{
+		try{
+			String dir = new java.io.File(".").getCanonicalPath();
+			File nuevo = new File(dir);
+			FileChannel in = (new FileInputStream(s)).getChannel();
+			FileChannel out = (new FileOutputStream(nuevo)).getChannel();
+			in.transferTo(0, s.length(), out);
+			in.close();
+			out.close();
+		}
+		catch(Exception e)
+		{
+			System.out.println("Imposible leer archivo");
+			return false;
+		}
+		return true;
+	}
+
 }
