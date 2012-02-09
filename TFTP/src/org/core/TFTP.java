@@ -10,7 +10,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.nio.channels.FileChannel;
 
 public class TFTP {
 	
@@ -302,40 +301,21 @@ public class TFTP {
 		 return ((b[0] & 0xFF) << 8) + (b[1] & 0xFF);
 	}
 	
-	/**
-	 * Método que escribe sobre un archivo (put)
-	 * @param archivo Archivo a copiar
-	 * @param dir Direccion donde se quiere escribir
-	 * @return
-	 */
-	public boolean escribirArchivo(File archivo, String dir)
-    {		
-		File nuevo = new File(dir);
-        try{
-              FileChannel in = (new FileInputStream(archivo)).getChannel();
-              FileChannel out = (new FileOutputStream(nuevo)).getChannel();
-              in.transferTo(0, archivo.length(), out);
-              in.close();
-              out.close();
-        }
-        catch(Exception e)
-        {
-        	System.out.println("Imposible escribir sobre el archivo");
-            return false;
-        }
-		return true;
-    }
 	
 	/**
-	 * Método que lee un archivo y lo copia en su directorio (get)
-	 * @param s archivo origen
+	 * Método crea los paquetes de datos que contienen el fichero y los envia
+	 * @param host de/al que se quiere mover el archivo
+	 * @param puerto
+	 * @param s Archivo que se quiere leer
 	 */
-	public void leerArchivo(String host, int puerto, File s)
+	public void moverArchivo(String host, int puerto, File s)
 	{
+		//Se utilizaria el mismo metodo para el Put que para el Get, cambiando el host y el puerto según
+		//dónde se vaya a ubicar el archivo
 		byte[] b = fileAbytes(s);
 		byte[] aux = new byte[512];
 		int numBloque = 0;
-		int x=0;
+		int x = 0;
 		
 		//Fragmenta el archivo en arrays de 512 Bytes y manda los paquetes
 		while(x>=b.length)
@@ -356,21 +336,24 @@ public class TFTP {
 	 */
 	public boolean obtenerArchivo(byte[] paquete, FileOutputStream archivo)
 	{
-		//Se llama a este metodo tantas veces como paquetes de datos haya y despues se cierra el archivo
+		//Se llama a este metodo tantas veces como paquetes de datos halla y despues se cierra el archivo
 		//Primero se tiene que crear el archivo en el cliente o en el servidor
 		byte[] datos = desempaquetarDatos(paquete);
 		
 	    try {
 			archivo.write(datos);
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("No se puede escribir en el archivo");
 			return false;
 		}
-		
-		
 		return true;
 	}
 
+	/**	
+	 * Convierte un fichero en un array de bytes
+	 * @param archivo Fichero a convertir
+	 * @return array de bytes
+	 */
 	private byte[] fileAbytes(File archivo)
 	{
 		byte[] b = new byte[(int) archivo.length()];
@@ -388,4 +371,6 @@ public class TFTP {
 		}
 		return b;
 	}
+	
+	
 }
