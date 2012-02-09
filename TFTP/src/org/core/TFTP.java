@@ -1,6 +1,5 @@
 package org.core;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -331,37 +330,44 @@ public class TFTP {
 	 * Método que lee un archivo y lo copia en su directorio (get)
 	 * @param s archivo origen
 	 */
-	public boolean leerArchivo(String host, int puerto, File s)
+	public void leerArchivo(String host, int puerto, File s)
 	{
 		byte[] b = fileAbytes(s);
 		byte[] aux = new byte[512];
+		int numBloque = 0;
+		int x=0;
 		
-		if(b.length<=512)
-			enviarPaquete(host, puerto, crearPaqueteData(0, b));
-		
-		for(int i=0;i<b.length;i=i+512)
+		//Fragmenta el archivo en arrays de 512 Bytes y manda los paquetes
+		while(x>=b.length)
 		{
-			for(int j=i;j<512*i;j++)
+			for(int j=x;j<x+512;j++)
 			{
 				aux[j]=b[j];
 			}
-		}
+			enviarPaquete(host, puerto, crearPaqueteData(numBloque, aux));
+			numBloque++;
+			x=x+512;
+		}		
+	}
+	
+	/**
+	 * Escribe los bytes de datos del paquete en un archivo
+	 * @param paquete de datos
+	 */
+	public boolean obtenerArchivo(byte[] paquete, FileOutputStream archivo)
+	{
+		//Se llama a este metodo tantas veces como paquetes de datos haya y despues se cierra el archivo
+		//Primero se tiene que crear el archivo en el cliente o en el servidor
+		byte[] datos = desempaquetarDatos(paquete);
 		
-		
-		try{
-			String dir = new java.io.File(".").getCanonicalPath();
-			File nuevo = new File(dir);
-			FileChannel in = (new FileInputStream(s)).getChannel();
-			FileChannel out = (new FileOutputStream(nuevo)).getChannel();
-			in.transferTo(0, s.length(), out);
-			in.close();
-			out.close();
-		}
-		catch(Exception e)
-		{
-			System.out.println("Imposible leer archivo");
+	    try {
+			archivo.write(datos);
+		} catch (IOException e) {
+			e.printStackTrace();
 			return false;
 		}
+		
+		
 		return true;
 	}
 
