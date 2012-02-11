@@ -78,8 +78,8 @@ public class TestCliente
 			if(tftp.catalogarPaquete(paquete)==3)	//Si es de datos
 			{
 				tftp.crearArchivo(nombreArchivo);
-				if(tftp.escribirBytes(paquete,numBloq)!=true);
-				fin=true;
+				if(tftp.escribirBytes(paquete,numBloq)!=true)	
+					fin=true;
 
 				recibido=tftp.crearPaqueteACK(numBloq);
 				numBloq++;

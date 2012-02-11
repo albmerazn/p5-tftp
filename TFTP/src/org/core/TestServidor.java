@@ -13,14 +13,17 @@ public class TestServidor {
 	{
 		tftp = new TFTP(69,ruta);
 	}
+	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		TestServidor servidor = new TestServidor();
-		acabado=false;
 		byte[] recibir=new byte[4];
 		byte[] recibido;
+		acabado=false;
+
+		System.out.println("Ejecución del servidor\n");
 		
 		while(acabado!=true)
 		{
@@ -89,30 +92,31 @@ public class TestServidor {
 		boolean fin=false;
 		int numBloq=0;
 		byte[] recibir=new byte[4];
-		byte[] recibido;
 		byte[] paquete;
 		
-		paquete= tftp.crearPaqueteACK(numBloq);	//Se envia un ACK 0
-		
+		paquete= tftp.crearPaqueteACK(numBloq);	//Se envia un ACK 0		
 		if(tftp.enviarPaquete(hostCliente, puertoCliente, paquete)==false)	
 			System.out.println("No se ha podido realizar la operacion");			
-
 
 		while(fin!=true)
 		{
 			paquete = tftp.recibirPaquete(recibir);//Se recibe el paquete de respuesta
-			if(tftp.catalogarPaquete(paquete)==3)	//Si es de datos
+			if(tftp.catalogarPaquete(paquete)==4)	//Si es un ACK
 			{
 				tftp.crearArchivo(archivo);
-				if(tftp.escribirBytes(paquete,numBloq)!=true);
-				fin=true;
+				if(tftp.escribirBytes(paquete,numBloq)!=true)
+					fin=true;
 
-				recibido=tftp.crearPaqueteACK(numBloq);
+				paquete=tftp.crearPaqueteACK(numBloq);
 				numBloq++;
-				tftp.enviarPaquete(hostCliente, 69, recibido);
+				if(tftp.enviarPaquete(hostCliente, puertoCliente, paquete)==false)	
+					System.out.println("No se ha podido realizar la operacion");	
 			}
-			if(tftp.catalogarPaquete(recibir)==5)
-				System.out.println(tftp.desempaquetarError(recibir));
+			if(tftp.catalogarPaquete(recibir)==5)			
+			{	
+				System.out.println(tftp.desempaquetarError(recibir));		
+				fin=true;
+			}
 		}	
 	}
 }
