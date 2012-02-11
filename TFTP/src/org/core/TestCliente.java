@@ -62,7 +62,7 @@ public class TestCliente
 		recibido = tftp.recibirPaquete(recibir);	//Se recibe el paquete de respuesta
 		if(tftp.catalogarPaquete(recibido)!=4);	//Si no se recibe un ACK esperar - timeouts
 		
-		while(fin==true)
+		while(fin!=true)
 		{
 			paquete = tftp.recibirPaquete(recibir);//Se recibe el paquete de respuesta
 			if(tftp.catalogarPaquete(recibido)==3)	//Si es de datos
@@ -96,7 +96,7 @@ public class TestCliente
 		byte[] recibir=new byte[4];
 		byte[] recibido;
 		
-		while(fin==true)
+		while(fin!=true)
 		{
 			recibido = tftp.recibirPaquete(recibir);//Se recibe el paquete de respuesta
 			if(tftp.catalogarPaquete(recibido)==4)	//Si es un ACK
