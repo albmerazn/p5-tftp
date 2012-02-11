@@ -1,12 +1,18 @@
 package org.core;
 
-public class TestServidor extends TFTP{
+public class TestServidor {
 
+	String ruta;	
+	
+	private TestServidor()
+	{
+		TFTP tftp = new TFTP(69,ruta);
+	}
 	/**
 	 * @param args
 	 */
-	public void main(String[] args) {
-		// TODO Auto-generated method stub
+	public static void main(String[] args) {
+		TestServidor servidor = new TestServidor();
 
 	}
 

@@ -15,29 +15,55 @@ public class TFTP {
 	
 	//Atributos necesarios.
 	private DatagramSocket socket;
-	
 	private static final byte zero=0;	
 	private boolean crcActivo;
+	private int tamanoFichero;
+	private String ruta;
+	private File archivo;
+	private FileInputStream fis;
+	private FileOutputStream fos;
 	
 	/**
-	 * Constructor por defecto.
+	 * Constructor por defecto, crea un socket donde se pueda.
 	 */
 	public TFTP(){
 		crcActivo=false;
 		try {
 			socket=new DatagramSocket();
 		} catch (SocketException e) {
+			// TODO Auto-generated catch block
 			//e.printStackTrace();
 		}
 	}
-
-// Falta el otro constructor
 	
+	/**
+	 * Constructor para indicar el puerto del socket a crear.
+	 * @param puerto
+	 */
+	public TFTP(int puerto, String ruta){
+		this.ruta=ruta;
+		try {
+			socket=new DatagramSocket(puerto);
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		}
+	}
+	
+	/**
+	* Cierra el socket
+	*/
+	public void cerrarConexion(){
+		socket.close();
+	}
+
 	public boolean enviarPaquete(String host, int puerto, byte[] paquete){
 		InetAddress direccion;
 		try {
 			direccion = InetAddress.getByName(host);
 		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
 			return false;
 		}
 		DatagramPacket datos = new DatagramPacket(paquete, paquete.length, direccion, puerto);
@@ -45,6 +71,8 @@ public class TFTP {
         try {
 			socket.send(datos);
 		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
 			return false;
 		}
 		
@@ -53,16 +81,17 @@ public class TFTP {
 	
 	public byte[] recibirPaquete(byte[] datos){
 		DatagramPacket paquete = new DatagramPacket(datos, datos.length);
-		try {
-			//socket.setSoTimeout(timeout);	//Esto es el timeout.
+        try {
+        	//socket.setSoTimeout(timeout);	//Esto es el timeout.
 			socket.receive(paquete);
 			return paquete.getData();
+			//return true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
 		}
 		return null;
 	}
-
 	
 	/**
 	 * Lee el código de operación del paquete para saber como tratarlo.
@@ -216,7 +245,7 @@ public class TFTP {
 		
 		return paquete;
 	}
-	
+
 	public byte[] crearPaqueteACK(int bloque){
 		byte[] c=intAByte(4);
 		byte[] b=intAByte(bloque);
@@ -233,49 +262,49 @@ public class TFTP {
 		byte[] operacion=intAByte(5);
 		byte[] codigo=intAByte(codigoError);
 		byte[] mensaje;
-		
+
 		switch(codigoError){		//Se selecciona el error correspondiente.
-			case 0:		//Error no definido.
-				mensaje=mensajeError.getBytes();
-				break;
-			case 1:		//Archivo no encontrado.
-				mensaje="Archivo no encontrado".getBytes();
-				break;
-			case 2:		//Violacion de acceso.
-				mensaje="Violacion de acceso".getBytes();
-				break;
-			case 3:		//Disco lleno o capacidad excedida.
-				mensaje="Disco lleno o capacidad excedida".getBytes();
-				break;	
-			case 4:		//Operacion TFTP ilegal.
-				mensaje="Operacion TFTP ilegal".getBytes();
-				break;
-			case 5:		//ID de transferencia desconocido.
-				mensaje="ID de transfeerencia desconocido".getBytes();
-				break;
-			case 6:		//El archivo ya existe.
-				mensaje="El archivo ya existe".getBytes();
-				break;
-			case 7:		//No es usuario.
-				mensaje="No es usuario".getBytes();
-				break;
-			default:	//Lo mismo que el 0.
-				mensaje=mensajeError.getBytes();
-				break;
+		case 0:		//Error no definido.
+			mensaje=mensajeError.getBytes();
+			break;
+		case 1:		//Archivo no encontrado.
+			mensaje="Archivo no encontrado".getBytes();
+			break;
+		case 2:		//Violacion de acceso.
+			mensaje="Violacion de acceso".getBytes();
+			break;
+		case 3:		//Disco lleno o capacidad excedida.
+			mensaje="Disco lleno o capacidad excedida".getBytes();
+			break;	
+		case 4:		//Operacion TFTP ilegal.
+			mensaje="Operacion TFTP ilegal".getBytes();
+			break;
+		case 5:		//ID de transferencia desconocido.
+			mensaje="ID de transfeerencia desconocido".getBytes();
+			break;
+		case 6:		//El archivo ya existe.
+			mensaje="El archivo ya existe".getBytes();
+			break;
+		case 7:		//No es usuario.
+			mensaje="No es usuario".getBytes();
+			break;
+		default:	//Lo mismo que el 0.
+			mensaje=mensajeError.getBytes();
+			break;
 		}
 		error=new byte[mensaje.length+5];
-		
+
 		error[0]=operacion[0];	//Insertarmos el código de operación
 		error[1]=operacion[1];
-		
+
 		error[2]=codigo[0];		//Insertamos el código de error.
 		error[3]=codigo[1];
-		
+
 		for(int i=0;i<mensaje.length;i++){	//Insertamos el mensaje correspondiente.
 			error[i+4]=mensaje[i];
 		}
 		error[error.length-1]=zero;
-		
+
 		return error;
 	}
 	
@@ -298,79 +327,89 @@ public class TFTP {
 	 * @return El número que contiene.
 	 */
 	private int bytesAint(byte[] b) {
-		 return ((b[0] & 0xFF) << 8) + (b[1] & 0xFF);
-	}
-	
-	
-	/**
-	 * Método crea los paquetes de datos que contienen el fichero y los envia
-	 * @param host de/al que se quiere mover el archivo
-	 * @param puerto
-	 * @param s Archivo que se quiere leer
-	 */
-	public void moverArchivo(String host, int puerto, File s)
-	{
-		//Se utilizaria el mismo metodo para el Put que para el Get, cambiando el host y el puerto según
-		//dónde se vaya a ubicar el archivo
-		byte[] b = fileAbytes(s);
-		byte[] aux = new byte[512];
-		int numBloque = 0;
-		int x = 0;
-		
-		//Fragmenta el archivo en arrays de 512 Bytes y manda los paquetes
-		while(x>=b.length)
-		{
-			for(int j=x;j<x+512;j++)
-			{
-				aux[j]=b[j];
-			}
-			enviarPaquete(host, puerto, crearPaqueteData(numBloque, aux));
-			numBloque++;
-			x=x+512;
-		}		
+		return ((b[0] & 0xFF) << 8) + (b[1] & 0xFF);
 	}
 	
 	/**
-	 * Escribe los bytes de datos del paquete en un archivo
-	 * @param paquete de datos
+	 * Carga un archivo para ser transmitido.
+	 * @param fichero Nombre del archivo a abrir.
+	 * @return True si se ha podido abrir el archivo.
 	 */
-	public boolean obtenerArchivo(byte[] paquete, FileOutputStream archivo)
-	{
-		//Se llama a este metodo tantas veces como paquetes de datos halla y despues se cierra el archivo
-		//Primero se tiene que crear el archivo en el cliente o en el servidor
-		byte[] datos = desempaquetarDatos(paquete);
-		
-	    try {
-			archivo.write(datos);
-		} catch (IOException e) {
-			System.out.println("No se puede escribir en el archivo");
+	public boolean cargarArchivo(String fichero){
+		archivo=new File(ruta+fichero);
+		if(!archivo.exists()){
+			tamanoFichero = (int) archivo.length();
+			return false;
+		}
+		try {
+			fis=new FileInputStream(archivo);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
 			return false;
 		}
 		return true;
 	}
 
-	/**	
-	 * Convierte un fichero en un array de bytes
-	 * @param archivo Fichero a convertir
-	 * @return array de bytes
+	/**
+	 * Método que lee una cantidad de bytes concreta del archivo cargado.
+	 * @param offset
+	 * @return
 	 */
-	private byte[] fileAbytes(File archivo)
-	{
-		byte[] b = new byte[(int) archivo.length()];
-		try {
-			FileInputStream fileInputStream = new FileInputStream(archivo);
-			fileInputStream.read(b);
-		} catch (FileNotFoundException e) {
-			System.out.println("Archivo no encontrado");
-			e.printStackTrace();
+	public byte[] leerBytes(int bloque){
+		int pos=bloque*512;
+		int longitud=512;
+		if(tamanoFichero-pos>0){
+			if(tamanoFichero-pos<512){
+				longitud=tamanoFichero-pos;
+			}
+			byte[] aux=new byte[longitud];
+			try {
+				fis.read(aux, pos, longitud);
+				return aux;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+			}
 		}
-		catch (IOException e1)
-		{
-			System.out.println("Archivo corrupto");
-			e1.printStackTrace();
-		}
-		return b;
+		return null;
 	}
 	
+	/**
+	 * Método para escribir datos en el archivo creado anteriormente.
+	 * @param b Bytes recibidos para escribir.
+	 * @param bloque Bloque que nos dirá donde se escriben.
+	 * @return True si se han escrito.
+	 */
+	public boolean escribirBytes(byte[] b, int bloque){
+		try {
+			fos.write(b, bloque*512, b.length);
+			return true;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			return false;
+		}
+	}
+
+	/**
+	 * Metodo para crear un archivo
+	 * @param fichero
+	 * @return False si no se ha podido crear el archivo
+	 */
+	public boolean crearArchivo(String fichero){
+		File archivo=new File(ruta+fichero);
+		if(archivo.exists()){
+			return false;
+		}
+		try {
+			archivo.createNewFile();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
 	
 }

@@ -1,99 +1,117 @@
 package org.core;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Scanner;
 
 public class TestCliente
 {
 	TFTP tftp;
+	static String hostServer;
 	
 	private TestCliente()
 	{
-		tftp=new TFTP();//Utilizar el otro constructor
+		tftp=new TFTP();
 	}
-	
-	public static void main(String[] args) throws FileNotFoundException
+	public static void main(String[] args) throws IOException
 	{
 		TestCliente cliente=new TestCliente();
 		
 		int opcion=0;
-		byte[] nombreArchivo;
-		String hostServer="";	//<-------?
+		String nombreArchivo;
 		
 		String cadenaLeida;
         System.out.println("Ejecución del cliente:\n");
         System.out.println("Escriba \"salir\" para terminar la aplicacion.\n");
-		System.out.print("tftp> ");
-		Scanner sc = new Scanner(System.in);
-		cadenaLeida = sc.nextLine();
-		while(cadenaLeida.compareTo("Salir")!=0)
-		{
-			if(cadenaLeida.compareTo("get")==0)
-				opcion = 1;
-			if(cadenaLeida.compareTo("put")==0)
-				opcion = 2;
-		}
-		if(cadenaLeida.compareTo("Salir")==0)
-			return;
+        System.out.print("tftp> ");
+        Scanner sc = new Scanner(System.in);
+        cadenaLeida = sc.nextLine();
+        if(cadenaLeida.compareTo("Salir")!=0||cadenaLeida.compareTo("salir")!=0)
+        	return;
+        if(cadenaLeida.compareTo("get")==0)
+        	opcion = 1;
+        if(cadenaLeida.compareTo("put")==0)
+        	opcion = 2;
+        else
+        	System.out.println("Comando no válido. Escriba put para enviar un archivo o get para recibirlo\n");
+
 		if(opcion!=0)
 		{
 			System.out.println("Introduzca el nombre del archivo");
 			cadenaLeida = sc.nextLine();
-			nombreArchivo = cadenaLeida.getBytes();
+			nombreArchivo = cadenaLeida;
 			if(opcion==1)
 				cliente.get(hostServer,nombreArchivo.toString());
 			if(opcion==2)
-			{
-				File archivo = new File(nombreArchivo.toString());	//Crea uno nuevo sobreescribiendo el anterior?
-				cliente.put(hostServer,archivo);
-			}
+				cliente.put(hostServer,nombreArchivo);
 		}
-		else
-		{
-			System.out.println("Comando no válido. Escriba put para enviar un archivo o get para recibirlo\n");
-		}
-			
 	}
 
 	private void get(String hostServer, String nombreArchivo)
 	{
+		boolean fin=false;
+		int numBloq=0;
+		
 		byte[] paquete = tftp.crearPaqueteRRQoWRQ(nombreArchivo, 1);
-		if(tftp.enviarPaquete(hostServer, 69, paquete)==false)
-			System.out.println("No se ha podido realizar la operacion");
-		tftp.obtenerArchivo(null, null);
-		///////////////////////////...
+		//Se envia la peticion RRQ
+		if(tftp.enviarPaquete(hostServer, 69, paquete)==false)	
+			System.out.println("No se ha podido realizar la operacion");			
+		
+		byte[] recibir=new byte[4];
+		byte[] recibido;
+		
+		recibido = tftp.recibirPaquete(recibir);	//Se recibe el paquete de respuesta
+		if(tftp.catalogarPaquete(recibido)!=4);	//Si no se recibe un ACK esperar - timeouts
+		
+		while(fin==true)
+		{
+			paquete = tftp.recibirPaquete(recibir);//Se recibe el paquete de respuesta
+			if(tftp.catalogarPaquete(recibido)==3)	//Si es de datos
+			{
+				tftp.crearArchivo(nombreArchivo);
+				if(tftp.escribirBytes(paquete,numBloq)!=true);
+					fin=true;
+
+				recibido=tftp.crearPaqueteACK(numBloq);
+				numBloq++;
+				tftp.enviarPaquete(hostServer, 69, recibido);
+			}
+			if(tftp.catalogarPaquete(recibido)==5)
+				System.out.println(tftp.desempaquetarError(recibido));
+		}	
 	}
 	
-	public void put(String hostServer, File archivo)
+	public void put(String hostServer, String archivo)
 	{
-		//Para un archivo de menos de 512B y sin perdida de paquetes
+		boolean fin=false;
+		int numACK;		//Utilizar para controlar la perdida de paquetes
+		int numBloq=0;
+		byte[] aux;
 		
-		
-		byte[] paquete = tftp.crearPaqueteRRQoWRQ(archivo.getAbsolutePath(), 2);
+		byte[] paquete = tftp.crearPaqueteRRQoWRQ(archivo, 2);
 		//Se envia la peticion WRQ
 		if(tftp.enviarPaquete(hostServer, 69, paquete)==false)	
 			System.out.println("No se ha podido realizar la operacion");	
 		
+		
 		byte[] recibir=new byte[4];
 		byte[] recibido;
-		//Se recibe el paquete de respuesta
-		recibido = tftp.recibirPaquete(recibir);
-		if(tftp.catalogarPaquete(recibido)==4)	//Se recibide un ACK
+		
+		while(fin==true)
 		{
-			if(tftp.desempaquetarACK(recibido)==0);	//Numero de bloque=0		
-			tftp.moverArchivo(hostServer, 69, archivo);	//Envia el paquete de datos
-		}
-		if(tftp.catalogarPaquete(recibido)==5)
-			System.out.println(tftp.desempaquetarError(recibido));
-		
-		//Se recibe un nuevo ACK
-		recibido = tftp.recibirPaquete(recibir);
-		if(tftp.catalogarPaquete(recibido)==4)	//Si recibide un ACK termina
-			return;
-		
-		if(tftp.catalogarPaquete(recibido)==5)
-			System.out.println(tftp.desempaquetarError(recibido));		
+			recibido = tftp.recibirPaquete(recibir);//Se recibe el paquete de respuesta
+			if(tftp.catalogarPaquete(recibido)==4)	//Si es un ACK
+			{
+				numACK=tftp.desempaquetarACK(recibido); //Control de los ACKs recibidos
+				tftp.cargarArchivo(archivo);
+				aux=tftp.leerBytes(numBloq);
+				if(aux==null)
+					fin=true;
+				paquete=tftp.crearPaqueteData(numBloq, aux);
+				numBloq++;
+				tftp.enviarPaquete(hostServer, 69, paquete);
+			}
+			if(tftp.catalogarPaquete(recibido)==5)
+				System.out.println(tftp.desempaquetarError(recibido));
+		}	
 	}
-		
 }
