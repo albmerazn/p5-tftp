@@ -8,10 +8,14 @@ public class TestCliente
 	TFTP tftp;
 	static String hostServidor;
 
+	/**
+	 * Constructor por defecto.
+	 */
 	private TestCliente()
 	{
 		tftp=new TFTP();
 	}
+	
 	public static void main(String[] args) throws IOException
 	{
 		TestCliente cliente=new TestCliente();
@@ -26,7 +30,10 @@ public class TestCliente
 		Scanner sc = new Scanner(System.in);
 		cadenaLeida = sc.nextLine();
 		if(cadenaLeida.compareTo("Salir")!=0||cadenaLeida.compareTo("salir")!=0)
+		{
+			TestServidor.acabado=true;
 			return;
+		}
 		if(cadenaLeida.compareTo("get")==0)
 			opcion = 1;
 		if(cadenaLeida.compareTo("put")==0)
@@ -46,6 +53,11 @@ public class TestCliente
 		}
 	}
 
+	/**
+	 * Método que transmite un archivo al servidor
+	 * @param hostServer Nombre del host del servidor
+	 * @param nombreArchivo Nombre del archivo a transmitir
+	 */
 	private void get(String hostServer, String nombreArchivo)
 	{
 		boolean fin=false;
@@ -78,7 +90,12 @@ public class TestCliente
 		}	
 	}
 
-	public void put(String hostServer, String archivo)
+	/**
+	 * Método que recibe un archivo del servidor
+	 * @param hostServer Nombre del host del servidor
+	 * @param archivo Nombre del arhivo que se solicita
+	 */
+	private void put(String hostServer, String archivo)
 	{
 		boolean fin=false;
 		int numACK;		//Utilizar para controlar la perdida de paquetes
@@ -100,6 +117,8 @@ public class TestCliente
 			if(tftp.catalogarPaquete(recibido)==4)	//Si es un ACK
 			{
 				numACK=tftp.desempaquetarACK(recibido); //Control de los ACKs recibidos
+				if(numACK!=numBloq)
+					fin=true;
 				tftp.cargarArchivo(archivo);
 				aux=tftp.leerBytes(numBloq);
 				if(aux==null)
