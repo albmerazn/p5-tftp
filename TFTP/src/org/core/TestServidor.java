@@ -2,11 +2,11 @@ package org.core;
 
 public class TestServidor {
 
-	String ruta;	//Directorio del servidor
-	String hostCliente;
-	int puertoCliente;
-	String archivo;	//Nombre del archivo a transmitir/recibir
-	TFTP tftp;
+	private String ruta;	//Directorio del servidor
+	private String hostCliente;
+	private int puertoCliente;
+	private String archivo;	//Nombre del archivo a transmitir/recibir
+	private TFTP tftp;
 	public static boolean acabado;
 
 	private TestServidor()

@@ -5,8 +5,8 @@ import java.util.Scanner;
 
 public class TestCliente
 {
-	TFTP tftp;
-	static String hostServidor;
+	private TFTP tftp;
+	private static String hostServidor;
 
 	/**
 	 * Constructor por defecto.
